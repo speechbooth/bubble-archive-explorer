@@ -1,0 +1,446 @@
+<style>
+  .thumb {
+    height: 75px;
+    border: 1px solid #000;
+    margin: 10px 5px 0 0;
+  }
+p {
+     font-family: arial, sans-serif;
+   }
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  text-align: left;
+  padding: 3px;
+}
+
+@-moz-keyframes spinner-loader {
+  0% {
+    -moz-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes spinner-loader {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes spinner-loader {
+  0% {
+    -moz-transform: rotate(0deg);
+    -ms-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(360deg);
+    -ms-transform: rotate(360deg);
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+/* :not(:required) hides this rule from IE9 and below */
+.spinner-loader:not(:required) {
+  -moz-animation: spinner-loader 1500ms infinite linear;
+  -webkit-animation: spinner-loader 1500ms infinite linear;
+  animation: spinner-loader 1500ms infinite linear;
+  -moz-border-radius: 0.5em;
+  -webkit-border-radius: 0.5em;
+  border-radius: 0.5em;
+  -moz-box-shadow: rgba(0, 0, 51, 0.3) 1.5em 0 0 0, rgba(0, 0, 51, 0.3) 1.1em 1.1em 0 0, rgba(0, 0, 51, 0.3) 0 1.5em 0 0, rgba(0, 0, 51, 0.3) -1.1em 1.1em 0 0, rgba(0, 0, 51, 0.3) -1.5em 0 0 0, rgba(0, 0, 51, 0.3) -1.1em -1.1em 0 0, rgba(0, 0, 51, 0.3) 0 -1.5em 0 0, rgba(0, 0, 51, 0.3) 1.1em -1.1em 0 0;
+  -webkit-box-shadow: rgba(0, 0, 51, 0.3) 1.5em 0 0 0, rgba(0, 0, 51, 0.3) 1.1em 1.1em 0 0, rgba(0, 0, 51, 0.3) 0 1.5em 0 0, rgba(0, 0, 51, 0.3) -1.1em 1.1em 0 0, rgba(0, 0, 51, 0.3) -1.5em 0 0 0, rgba(0, 0, 51, 0.3) -1.1em -1.1em 0 0, rgba(0, 0, 51, 0.3) 0 -1.5em 0 0, rgba(0, 0, 51, 0.3) 1.1em -1.1em 0 0;
+  box-shadow: rgba(0, 0, 51, 0.3) 1.5em 0 0 0, rgba(0, 0, 51, 0.3) 1.1em 1.1em 0 0, rgba(0, 0, 51, 0.3) 0 1.5em 0 0, rgba(0, 0, 51, 0.3) -1.1em 1.1em 0 0, rgba(0, 0, 51, 0.3) -1.5em 0 0 0, rgba(0, 0, 51, 0.3) -1.1em -1.1em 0 0, rgba(0, 0, 51, 0.3) 0 -1.5em 0 0, rgba(0, 0, 51, 0.3) 1.1em -1.1em 0 0;
+  display: inline-block;
+  font-size: 10px;
+  width: 1em;
+  height: 1em;
+  margin: 1.5em;
+  overflow: hidden;
+  text-indent: 100%;
+}
+
+   
+   
+</style>
+
+
+<input type="file" id="files" name="files[]" multiple /><br>
+<br>
+
+<output id="search" style="display:none">
+   <input type="text" id="searchInput" name="searchInput"></input>
+   <button id='searchBtn' onclick="search()" >Search</button> 
+   <br>
+<output id="progress" style="display:none"> Searching...<br><font size =1>(This may take a minute)</font><br><span class="spinner-loader"></span></output>
+   <output id="return_to_results" style="display: none">
+      <a href="javascript:search('back')">[Back to Results]</a>
+   </output>
+   <output id="return_to_browsing" style="display: none">
+      <a href="javascript:navigate()">[Back to Browsing]</a>
+   </output> 
+</output>
+<output id="header"></output>
+<br>
+
+<table id="list"></table>
+
+<script>
+   
+   
+var mainObject = {};
+let currentPath = [];
+
+
+
+function handleFileSelect(evt) {
+    var files = evt.target.files; // FileList object
+    
+    // Loop through the FileList and render image files as thumbnails.
+    for (var i = 0, f; f = files[i]; i++) {
+
+
+      var reader = new FileReader();
+
+      // Closure to capture the file information.
+      reader.onload = (function(theFile) {
+         return function(e) {
+         mainObject = JSON.parse(e.target.result) ;
+         document.getElementById('search').setAttribute("style", "")
+         navigate();                    
+        };
+      })(f);
+
+      // Read in the text file as a text.
+      reader.readAsText(f,'UTF-8');
+    }
+  }
+var progressSpan = document.createElement('progress');
+var display = [];
+var displayHeader = document.getElementById('header');
+var doc = "";
+var currentThing = {};   
+var searching = 'no';
+   
+function navigate(path){
+   if(searching == 'yes'){
+      document.getElementById('return_to_results').setAttribute('style', '');
+      document.getElementById('return_to_browsing').setAttribute("style", 'display:none')
+
+   }
+   if(path != undefined){
+      var navPathArray = path.split(':::');
+      if (navPathArray[0] == '$'){
+            currentPath.pop();
+      }
+
+      else{
+         currentPath = navPathArray.join().split(',');
+      }
+      currentThing = getNestedObject(mainObject,currentPath);
+   }
+
+   else{
+      currentThing = mainObject;
+      currentPath = [];
+   }
+   if( currentThing != undefined){
+
+   display = [];
+   displayHeader.innerHTML = "<br>Current Path:" + formatPath(currentPath) + "<br>";
+   if ( currentPath.length != 0 ){
+       display.push("<a href=\"javascript:navigate(\'$\')\">&#8592; Back to Parent</a>");
+       }             
+   display.push("<br><br><table><tr><th style=\"width: 150px\">Key</th><th>Value</th><tr>");
+   for (let key of Object.keys(currentThing)){
+      display.push('<tr><td width=\"30%\">' + formatKey(currentThing, key, currentPath.concat(key)) + '</td>' );
+      
+   }
+ 
+   document.getElementById('list').innerHTML = display.join('');
+   }
+   else{
+      alert('no content');
+   }
+}
+   
+   
+function formatKey(parentObject, key, goToPath){
+   let targetObject = getNestedObject(parentObject, [key]);
+   
+   
+   if (targetObject == undefined){
+      targetObject = parentObject;
+   }
+   let name = key;
+   
+   // check the object's child values to see if they contain a 'pretty' name
+   if (targetObject['type'] !== undefined){
+      defaultName();
+
+      if (targetObject['type']  == 'Text'){
+         if (targetObject['display'] != undefined){
+            name = targetObject['display'] ;      
+         }
+         else{
+             defaultName();
+         }   
+      }
+      else if (targetObject['type']  == 'ButtonClicked' || targetObject['type'] == 'APIEvent'){
+         if (targetObject ['properties']['name'] != undefined){
+               name = targetObject.properties.name ;
+         } 
+         else { 
+            name = key;
+         }
+      }
+      
+   }
+   
+   if (name === undefined) {
+      name = key;
+   }
+   
+   var newKey = setName(key);
+   
+   if ( typeof parentObject[key] === 'object' && key == newKey ){
+      return '<b><a href="javascript:navigate(' + '\'' + goToPath.join(':::') + '\'' + ')\">' + name + '</a></b>'
+   }
+   else if ( typeof parentObject[key] === 'object' && key != newKey ){
+      return '<b><a title=\" ' + key + '\" href=\"javascript:navigate(' + '\'' + goToPath.join(':::') + '\'' + ')\">' + name + '</a></b>'
+   }
+   else if (parentObject[key] !== undefined){
+      return "<b>" + name + "</b></th><th> " + parentObject[key];
+   }
+   else {
+      return name
+   }
+   
+   function defaultName(){
+      if (targetObject['name'] == undefined)
+         name = targetObject.default_name;
+      else{
+         name = targetObject.name
+      }
+   }
+}
+namingScheme = [
+ ['properties', 'name'],
+ ['properties', 'wf_name'],
+ ['name']
+]
+
+var runOnce = false
+   
+function setName(thisKey){
+   for (k = 0 ; k < namingScheme.length ; k++){
+
+      if ( getNestedObject( mainObject,currentPath.concat( [thisKey],namingScheme[k] )) !== undefined) {
+         return getNestedObject( mainObject,currentPath.concat( [thisKey],namingScheme[k] ));
+      }
+      
+   }
+   return thisKey;
+}
+
+   
+   
+function getNestedObject(obj, paths) {
+    var current = obj
+    , i;
+  for (h = 0; h < paths.length; ++h) {
+    if (current[paths[h]] == undefined) {
+      return undefined;
+    } else {
+      current = current[paths[h]];
+    }
+  }
+  return current;
+}
+
+
+let pathList = [[]];  
+let tempPath = [];
+
+function formatPath(pathArray){
+   let pathHtmlArray = [];
+
+   for ( i = 0 ; i < pathArray.length ; i++ ) {
+      let currentObject = {};
+      
+      if ( i >= 1 ){
+         currentObject = getNestedObject( mainObject , pathArray.slice( 0, i ) )
+      }
+      else {
+         currentObject = mainObject;
+      }
+      if (typeof currentObject != 'object') {
+         pathHtmlArray.push(pathArray[i])   
+      }
+      else{
+         if (pathArray[i] != 'elements') 
+            pathHtmlArray.push( formatKey( currentObject , pathArray[i], pathArray.slice( 0, i + 1 )) )
+         }
+   }
+   
+   
+   if (pathHtmlArray.length == 0){
+      pathHtmlArray.push('<i>n/a</i>') 
+   }
+   return pathHtmlArray.join(":");
+}
+var displayPath = []; 
+   
+function runMap (){
+   var keyword = document.getElementById('searchInput').value;
+   console.log('run map');
+   mapKeys ( mainObject, keyword.toLowerCase() );
+   for (m = 0 ; m < pathList.length ; m++){
+         displayResults.push("<tr><td>" + formatPath(pathList[m]) +'</td></tr>');
+      }
+      
+   document.getElementById('list').innerHTML = displayResults.join('');
+   searching = 'yes';
+   document.getElementById('progress').setAttribute('style', 'display:none')
+   displayHeader.innerHTML = '';
+   document.getElementById('return_to_browsing').setAttribute("style", '');
+}
+function search(back) {
+   if (back == 'back'){
+      document.getElementById('return_to_results').setAttribute('style', 'display:none')
+      document.getElementById('list').innerHTML = displayResults.join('');
+   }
+   else {
+      document.getElementById('progress').setAttribute('style', '')
+      pathList = [];
+      displayResults = ["<th>SEARCH RESULTS</th>"];
+      setTimeout ( runMap , 1000);
+   }
+      
+}
+tempPath = [];   
+var progressCount = 0;
+var updateDOM = false;
+   
+function mapKeys ( mapObject, query, objectName){
+      if( objectName != undefined ){
+         tempPath.push(objectName);
+      }
+      var count = 0;
+      if (mapObject != undefined) {
+            for ( var p = 0 ; p < Object.keys( mapObject ).length ; p++){
+                  progressCount++
+                  if (progressCount % 10000 == 0 ){
+                  }
+                  var key = Object.keys(mapObject)[p]
+
+                  if (mapObject[key] != undefined) {
+                     if ( typeof mapObject[key] === 'object'){
+                        mapKeys( mapObject[key], query, key); 
+                        }
+                     
+                     if (mapObject[key].toString().toLowerCase().includes(query) || key.toString().toLowerCase().includes(query) ){
+                        
+ 
+                        pathList.push(tempPath.join().split(','));
+                           
+                     }
+                  }
+            }
+                  
+               
+      }
+   tempPath.pop();
+   progressCount++
+
+ }
+
+var elementTypes = ['Image','Text', 'Group','Popup', 'Alert', 'Button', 'Checkbox' , 'Dropdown','SliderInput','MultiLineInput', 'AutocompleteDropdown', 'RepeatingGroup', 'RadioButtons', 'FileInput', 'Link', 'PictureInput', 'DateInput', 'GoogleMap', 'Icon', 'NewThing', 'APIEvent', 'Page', 'Input', 'Shape', 'ButtonClicked', 'OpenURL', 'CustomElement', 'CustomDefinition', 'FloatingGroup', 'ConditionTrue', 'GroupFocus' ]
+var elements = {};   
+var countThis = 0;
+var countIt = 0
+function startIndexing(){
+   indexKeys();
+   console.log("elements", elements) 
+}   
+   
+function indexKeys (indexObject){
+   if(indexObject == undefined){
+      indexObject = mainObject; 
+   }
+
+   if( indexObject['id'] != undefined  &&  indexObject['type'] != undefined ){
+      let textObject = {};   
+      let newKey = indexObject.id;
+      let newText;
+
+      elements[newKey] = {type : indexObject.type}
+
+      if (indexObject['name'] != undefined){
+         elements[newKey].name = indexObject['name'];
+      }
+
+      else if ( indexObject['default_name' != undefined] ){
+         elements[newKey].name = indexObject['default_name']
+      }
+
+      if ( indexObject.type == 'Text') {
+         newText = getTextEntries(indexObject)
+
+         if (newText != undefined){
+            elements[newKey].text = getTextEntries(indexObject)
+         }
+
+      }
+      
+   }
+   
+   for ( let key of Object.keys(indexObject)){
+      if (typeof indexObject[key] === 'object' && countIt < 10 ){
+         countIt++    
+         indexKeys(indexObject[key]);
+         
+          }
+   }
+      
+countIt--
+}
+
+   
+function getTextEntries(textIndexObject){
+   let textArray = [];
+   if( getNestedObject(textIndexObject, ['properties','text','entries']) !== undefined){
+      textObject = getNestedObject(textIndexObject, ['properties','text','entries']);
+      for ( let key of Object.keys(textObject)){
+         textArray.push ( textObject[key] );
+      }
+      return textArray.join(' ');
+   }
+
+
+}
+var input = document.getElementById("searchInput");
+
+input.addEventListener("keyup", function(event) {
+  if (event.keyCode === 13) {
+
+    document.getElementById("searchBtn").click();
+  }
+});               
+
+document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+   
+</script>
