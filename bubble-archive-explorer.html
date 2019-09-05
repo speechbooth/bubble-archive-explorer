@@ -185,6 +185,7 @@ function formatKey(parentObject, key, goToPath){
       targetObject = parentObject;
    }
    let name = key;
+   let idReference = '';
    
    // check the object's child values to see if they contain a 'pretty' name
    if (targetObject['type'] !== undefined){
@@ -198,19 +199,36 @@ function formatKey(parentObject, key, goToPath){
              defaultName();
          }   
       }
+      //name workflows
       else if (targetObject['type']  == 'ButtonClicked' || targetObject['type'] == 'APIEvent'){
          if (targetObject ['properties']['name'] != undefined){
                name = targetObject.properties.name ;
          } 
-         else { 
-            name = key;
+         else if (targetObject['properties']['element_id'] != undefined){ 
+            idReference = targetObject['properties']['element_id']
+            if (elements[idReference] !== undefined ) {
+               if(elements[idReference]['name'] !== undefined ){
+                  name = elements[idReference]['name'];
+               }
+            }
+            console.log('attempting to get name from index...')
          }
       }
-      
+      else if (targetObject['type'] == 'CustomEvent' && targetObject['properties']['event_name'] != undefined){
+         name = targetObject['properties']['event_name']
+      }
    }
    
    if (name === undefined) {
       name = key;
+   }
+   
+   if (name == ""){
+      name = '[blank name]'
+   }
+   
+   if (name === null){
+      name = 'null value'
    }
    
    var newKey = setName(key);
@@ -328,7 +346,9 @@ function search(back) {
       displayResults = ["<th>SEARCH RESULTS</th>"];
       setTimeout ( runMap , 1000);
    }
-      
+   console.log('elements:', elements)
+   console.log('done')
+   
 }
 tempPath = [];   
 var progressCount = 0;
@@ -348,15 +368,16 @@ function mapKeys ( mapObject, query, objectName){
 
                   if (mapObject[key] != undefined) {
                      if ( typeof mapObject[key] === 'object'){
+                        indexKey(mapObject[key])
                         mapKeys( mapObject[key], query, key); 
+                        
                         }
                      
                      if (mapObject[key].toString().toLowerCase().includes(query) || key.toString().toLowerCase().includes(query) ){
-                        
- 
                         pathList.push(tempPath.join().split(','));
                            
                      }
+                     
                   }
             }
                   
@@ -376,7 +397,7 @@ function startIndexing(){
    console.log("elements", elements) 
 }   
    
-function indexKeys (indexObject){
+function indexKey (indexObject){
    if(indexObject == undefined){
       indexObject = mainObject; 
    }
@@ -389,33 +410,25 @@ function indexKeys (indexObject){
       elements[newKey] = {type : indexObject.type}
 
       if (indexObject['name'] != undefined){
-         elements[newKey].name = indexObject['name'];
+         elements[newKey]['name'] = indexObject['name'];
       }
 
       else if ( indexObject['default_name' != undefined] ){
-         elements[newKey].name = indexObject['default_name']
+         elements[newKey]['name'] = indexObject['default_name']
       }
 
       if ( indexObject.type == 'Text') {
          newText = getTextEntries(indexObject)
 
          if (newText != undefined){
-            elements[newKey].text = getTextEntries(indexObject)
+            elements[newKey]['text'] = getTextEntries(indexObject)
          }
 
       }
       
    }
    
-   for ( let key of Object.keys(indexObject)){
-      if (typeof indexObject[key] === 'object' && countIt < 10 ){
-         countIt++    
-         indexKeys(indexObject[key]);
-         
-          }
-   }
-      
-countIt--
+
 }
 
    
